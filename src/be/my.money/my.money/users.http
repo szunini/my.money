@@ -1,0 +1,71 @@
+@my.money_HostAddress = https://localhost:7001
+
+### Obtener todos los usuarios
+GET {{my.money_HostAddress}}/api/users
+Accept: application/json
+
+###
+
+### Obtener un usuario por ID
+GET {{my.money_HostAddress}}/api/users/1
+Accept: application/json
+
+###
+
+### Crear un nuevo usuario
+POST {{my.money_HostAddress}}/api/users
+Content-Type: application/json
+
+{
+  "name": "Juan Pérez",
+  "email": "juan.perez@example.com"
+}
+
+###
+
+### Crear otro usuario
+POST {{my.money_HostAddress}}/api/users
+Content-Type: application/json
+
+{
+  "name": "María García",
+  "email": "maria.garcia@example.com"
+}
+
+###
+
+### Actualizar un usuario
+PUT {{my.money_HostAddress}}/api/users/1
+Content-Type: application/json
+
+{
+  "name": "Juan Pérez Actualizado",
+  "email": "juan.perez.updated@example.com"
+}
+
+###
+
+### Eliminar un usuario
+DELETE {{my.money_HostAddress}}/api/users/1
+
+###
+
+### Intentar crear usuario con email duplicado (debería fallar)
+POST {{my.money_HostAddress}}/api/users
+Content-Type: application/json
+
+{
+  "name": "Pedro Rodríguez",
+  "email": "maria.garcia@example.com"
+}
+
+###
+
+### Intentar crear usuario sin datos requeridos (debería fallar)
+POST {{my.money_HostAddress}}/api/users
+Content-Type: application/json
+
+{
+  "name": "",
+  "email": "invalid-email"
+}

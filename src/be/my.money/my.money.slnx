@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="my.money.application/my.money.application.csproj" />
+  <Project Path="my.money.domain/my.money.domain.csproj" />
+  <Project Path="my.money.Infraestructure/my.money.Infraestructure.csproj" />
+  <Project Path="my.money/my.money.csproj" />
+</Solution>
