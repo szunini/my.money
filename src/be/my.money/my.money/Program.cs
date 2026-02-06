@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using my.money.application.Authentication;
+using my.money.application.Portfolios.Queries.GetDashboard;
 using my.money.application.Ports.Authentication;
 using my.money.application.Ports.Persistence;
 using my.money.application.Ports.Queries;
@@ -40,7 +41,7 @@ namespace my.money
             // Add DbContext
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-            
+
             builder.Services
                     .AddOptions<JwtSettings>()
                     .Bind(builder.Configuration.GetSection(JwtSettings.SectionName))
@@ -130,9 +131,17 @@ namespace my.money
             builder.Services.AddScoped<IUserAuthProvider, IdentityUserAuthProvider>();
             builder.Services.AddScoped<IAuthService, LoginService>();
 
+
+            // Add HttpContextAccessor for CurrentUser
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+            
             // Add Query Services
             builder.Services.AddScoped<IAssetQueryService, AssetQueryService>();
-
+            
+            // Add Portfolio Handlers            
+            builder.Services.AddScoped<GetDashboardHandler>();
+            
             // Add Repository Pattern
             builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();

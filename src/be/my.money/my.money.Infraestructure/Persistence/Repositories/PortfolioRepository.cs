@@ -13,13 +13,11 @@ namespace my.money.Infraestructure.Persistence.Repositories
         public Task<Portfolio?> GetByIdAsync(Guid id, CancellationToken ct)
             => _db.Portfolios
                   .Include(p => p.Holdings)
-                  .Include(p => p.Trades)
                   .SingleOrDefaultAsync(p => p.Id == id, ct);
 
         public Task<Portfolio?> GetByUserIdAsync(string userId, CancellationToken ct)
             => _db.Portfolios
                   .Include(p => p.Holdings)
-                  .Include(p => p.Trades)
                   .SingleOrDefaultAsync(p => p.UserId == userId, ct);
 
         public Task AddAsync(Portfolio portfolio, CancellationToken ct)
