@@ -19,13 +19,34 @@ namespace my.money
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            // CORS configuration to allow frontend calls
+            const string FrontendCorsPolicy = "FrontendCors";
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy(FrontendCorsPolicy, policy =>
+                {
+                    policy.WithOrigins("http://localhost:5173")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
+
             // Add services to the container.
             builder.Services.AddControllers();
 
             // Add DbContext
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
+            
+            builder.Services
+                    .AddOptions<JwtSettings>()
+                    .Bind(builder.Configuration.GetSection(JwtSettings.SectionName))
+                    .Validate(s => !string.IsNullOrWhiteSpace(s.Key), "Jwt:Key is missing")
+                    .Validate(s => !string.IsNullOrWhiteSpace(s.Issuer), "Jwt:Issuer is missing")
+                    .Validate(s => !string.IsNullOrWhiteSpace(s.Audience), "Jwt:Audience is missing")
+                    .Validate(s => s.ExpiryMinutes > 0, "Jwt:ExpiryMinutes must be > 0")
+                    .ValidateOnStart();
             // Add Identity
             builder.Services
                 .AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
@@ -58,7 +79,7 @@ namespace my.money
                         IssuerSigningKey = new SymmetricSecurityKey(
                             Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
                         ),
-                        ClockSkew = TimeSpan.Zero 
+                        ClockSkew = TimeSpan.Zero
                     };
 
                     options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
@@ -120,19 +141,19 @@ namespace my.money
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
+            // fuerza options (opcional pero recomendado)
+            _ = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<JwtSettings>>().Value;
+
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
-
-                // Redirige a Swagger al acceder a la raíz
-                app.MapGet("/", () => Results.Redirect("/swagger/index.html"))
-                    .WithName("Redirect to Swagger")
-                    .WithOpenApi();
+                app.MapGet("/", () => Results.Redirect("/swagger/index.html")).WithName("Redirect to Swagger").WithOpenApi();
             }
 
-            // app.UseHttpsRedirection();
+            app.UseRouting();
+
+            app.UseCors(FrontendCorsPolicy);
 
             app.UseAuthentication();
             app.UseAuthorization();
@@ -141,6 +162,7 @@ namespace my.money
             app.MapHealthChecks("/health");
 
             app.Run();
+
         }
     }
 }

@@ -1,0 +1,55 @@
+import { useState } from "react";
+import { login } from "../api/authApi";
+import { useAuth } from "../auth/AuthContext";
+
+export function LoginPage() {
+  const { setToken } = useAuth();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    try {
+      const result = await login(email, password);
+      setToken(result.accessToken);
+      alert("Login OK");
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? "Login failed");
+    }
+  }
+
+  return (
+    <div style={{ maxWidth: 420, margin: "40px auto" }}>
+      <h2>Login</h2>
+
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label>Email</label>
+          <input
+            style={{ width: "100%" }}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+
+        <div style={{ marginTop: 12 }}>
+          <label>Password</label>
+          <input
+            style={{ width: "100%" }}
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+
+        {error && <div style={{ marginTop: 12, color: "crimson" }}>{error}</div>}
+
+        <button style={{ marginTop: 16, width: "100%" }}>Sign in</button>
+      </form>
+    </div>
+  );
+}
