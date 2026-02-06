@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using my.money.application.Authentication;
 using my.money.application.Ports.Authentication;
 using my.money.application.Ports.Persistence;
+using my.money.application.Ports.Queries;
 using my.money.Infraestructure.Authentication;
 using my.money.Infraestructure.Persistence;
 using my.money.Infraestructure.Repositories;
