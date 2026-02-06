@@ -70,7 +70,7 @@ public sealed class AuthController : ControllerBase
         }
     }
 
-    /// <summary>Devuelve info básica del usuario logueado</summary>
+    /// <summary>Devuelve info básica del usuario logueado</summary>    
     [Authorize]
     [HttpGet("me")]
     public IActionResult Me()
