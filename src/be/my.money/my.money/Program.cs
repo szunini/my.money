@@ -5,7 +5,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using my.money.application.Authentication;
 using my.money.application.Ports.Authentication;
-using my.money.domain.Interfaces;
+using my.money.application.Ports.Persistence;
 using my.money.Infraestructure.Authentication;
 using my.money.Infraestructure.Persistence;
 using my.money.Infraestructure.Repositories;

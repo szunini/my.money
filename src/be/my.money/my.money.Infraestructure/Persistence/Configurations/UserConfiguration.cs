@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using my.money.domain.agregates;
+using my.money.domain.aggregates;    
 
 namespace my.money.Infraestructure.Persistence.Configurations;
 

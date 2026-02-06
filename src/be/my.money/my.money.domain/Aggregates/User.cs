@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace my.money.domain.agregates
+﻿namespace my.money.domain.aggregates
 {
     public class User
     {

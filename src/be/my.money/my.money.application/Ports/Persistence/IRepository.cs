@@ -1,6 +1,6 @@
 using System.Linq.Expressions;
 
-namespace my.money.domain.Interfaces;
+namespace my.money.application.Ports.Persistence;
 
 public interface IRepository<T> where T : class
 {

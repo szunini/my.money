@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore.Storage;
-using my.money.domain.agregates;
-using my.money.domain.Interfaces;
+using my.money.application.Ports.Persistence;
+using my.money.domain.aggregates;
 using my.money.Infraestructure.Persistence;
 
 namespace my.money.Infraestructure.Repositories;

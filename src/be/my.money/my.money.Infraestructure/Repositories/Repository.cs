@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using my.money.domain.Interfaces;
+using my.money.application.Ports.Persistence;
 using my.money.Infraestructure.Persistence;
 using System.Linq.Expressions;
 
