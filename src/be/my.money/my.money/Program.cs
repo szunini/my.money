@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using my.money.application.Authentication;
 using my.money.application.Ports.Authentication;
@@ -9,6 +8,8 @@ using my.money.application.Ports.Persistence;
 using my.money.application.Ports.Queries;
 using my.money.Infraestructure.Authentication;
 using my.money.Infraestructure.Persistence;
+using my.money.Infraestructure.Persistence.Seeding;
+using my.money.Infraestructure.Queries;
 using my.money.Infraestructure.Repositories;
 using System.Text;
 
@@ -16,7 +17,7 @@ namespace my.money
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -129,6 +130,9 @@ namespace my.money
             builder.Services.AddScoped<IUserAuthProvider, IdentityUserAuthProvider>();
             builder.Services.AddScoped<IAuthService, LoginService>();
 
+            // Add Query Services
+            builder.Services.AddScoped<IAssetQueryService, AssetQueryService>();
+
             // Add Repository Pattern
             builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -161,6 +165,9 @@ namespace my.money
 
             app.MapControllers();
             app.MapHealthChecks("/health");
+
+            // 🌱 Seed database with Argentine assets (stocks & bonds)
+            await app.SeedDatabaseAsync();
 
             app.Run();
 
