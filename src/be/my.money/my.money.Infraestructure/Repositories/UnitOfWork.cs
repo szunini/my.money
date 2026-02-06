@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore.Storage;
 using my.money.application.Ports.Persistence;
-using my.money.domain.aggregates;
 using my.money.Infraestructure.Persistence;
+using my.money.Infraestructure.Persistence.Repositories;
 
 namespace my.money.Infraestructure.Repositories;
 
@@ -9,25 +9,35 @@ public class UnitOfWork : IUnitOfWork
 {
     private readonly ApplicationDbContext _context;
     private IDbContextTransaction? _transaction;
-    private IRepository<User>? _users;
+    private IPortfolioRepository? _portfolios;
+    private IAssetRepository? _assets;
 
     public UnitOfWork(ApplicationDbContext context)
     {
         _context = context;
     }
 
-    public IRepository<User> Users
+    public IPortfolioRepository Portfolios
     {
         get
         {
-            _users ??= new Repository<User>(_context);
-            return _users;
+            _portfolios ??= new PortfolioRepository(_context);
+            return _portfolios;
         }
     }
 
-    public async Task<int> SaveChangesAsync()
+    public IAssetRepository Assets
     {
-        return await _context.SaveChangesAsync();
+        get
+        {
+            _assets ??= new AssetRepository(_context);
+            return _assets;
+        }
+    }
+
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.SaveChangesAsync(cancellationToken);
     }
 
     public async Task BeginTransactionAsync()

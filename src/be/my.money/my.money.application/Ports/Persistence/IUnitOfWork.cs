@@ -1,11 +1,11 @@
-using my.money.domain.aggregates;
-
 namespace my.money.application.Ports.Persistence;
 
 public interface IUnitOfWork : IDisposable
 {
-    IRepository<User> Users { get; }
-    Task<int> SaveChangesAsync();
+    IPortfolioRepository Portfolios { get; }
+    IAssetRepository Assets { get; }
+    
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task BeginTransactionAsync();
     Task CommitTransactionAsync();
     Task RollbackTransactionAsync();
