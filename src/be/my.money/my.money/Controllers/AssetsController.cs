@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using my.money.application.Assets.Dtos;
+using my.money.application.Assets.Queries.GetAssetDetail;
 using my.money.application.Ports.Queries;
 
 namespace my.money.Controllers;
@@ -9,13 +11,16 @@ namespace my.money.Controllers;
 public sealed class AssetsController : ControllerBase
 {
     private readonly IAssetQueryService _assetQueryService;
+    private readonly GetAssetDetailHandler _getAssetDetailHandler;
     private readonly ILogger<AssetsController> _logger;
 
     public AssetsController(
         IAssetQueryService assetQueryService,
+        GetAssetDetailHandler getAssetDetailHandler,
         ILogger<AssetsController> logger)
     {
         _assetQueryService = assetQueryService;
+        _getAssetDetailHandler = getAssetDetailHandler;
         _logger = logger;
     }
 
@@ -72,5 +77,30 @@ public sealed class AssetsController : ControllerBase
         }
         
         return Ok(asset);
+    }
+
+    /// <summary>
+    /// Get asset detail with current price and user holding valuation
+    /// </summary>
+    [HttpGet("{assetId:guid}/detail")]
+    [Authorize]
+    [ProducesResponseType(typeof(AssetDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetAssetDetail(Guid assetId, CancellationToken ct)
+    {
+        try
+        {
+            var detail = await _getAssetDetailHandler.HandleAsync(new GetAssetDetailQuery(assetId), ct);
+            if (detail is null)
+                return NotFound(new { message = $"Asset with ID {assetId} not found" });
+
+            return Ok(detail);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized asset detail access attempt");
+            return Unauthorized(new { message = ex.Message });
+        }
     }
 }

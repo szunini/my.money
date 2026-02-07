@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using my.money.application.Assets.Queries.GetAssetDetail;
 using my.money.application.Authentication;
 using my.money.application.Portfolios.Queries.GetDashboard;
 using my.money.application.Portfolios.Queries.GetDashboardValuation;
@@ -144,9 +145,11 @@ namespace my.money
             // Add Portfolio Handlers            
             builder.Services.AddScoped<GetDashboardHandler>();
             builder.Services.AddScoped<GetDashboardValuationHandler>();
+            builder.Services.AddScoped<GetAssetDetailHandler>();
             
             // Add Read Repositories
             builder.Services.AddScoped<IPortfolioDashboardReadRepository, PortfolioDashboardReadRepository>();
+            builder.Services.AddScoped<IAssetDetailReadRepository, AssetDetailReadRepository>();
             
             // Add Repository Pattern
             builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -181,7 +184,7 @@ namespace my.money
             app.MapControllers();
             app.MapHealthChecks("/health");
 
-            // ?? Seed database with Argentine assets (stocks & bonds)
+            //  Seed database with Argentine assets (stocks & bonds)
             await app.SeedDatabaseAsync();
 
             app.Run();
