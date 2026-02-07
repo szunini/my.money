@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using my.money.application.Portfolios.Dtos;
 using my.money.application.Portfolios.Queries.GetDashboard;
+using my.money.application.Portfolios.Queries.GetDashboardValuation;
 
 namespace my.money.Controllers;
 
@@ -11,35 +12,39 @@ namespace my.money.Controllers;
 public sealed class PortfolioController : ControllerBase
 {
     private readonly GetDashboardHandler _getDashboardHandler;
+    private readonly GetDashboardValuationHandler _getDashboardValuationHandler;
     private readonly ILogger<PortfolioController> _logger;
 
     public PortfolioController(
         GetDashboardHandler getDashboardHandler,
+        GetDashboardValuationHandler getDashboardValuationHandler,
         ILogger<PortfolioController> logger)
     {
         _getDashboardHandler = getDashboardHandler;
+        _getDashboardValuationHandler = getDashboardValuationHandler;
         _logger = logger;
     }
 
     /// <summary>
-    /// Get the authenticated user's portfolio dashboard
-    /// Returns cash balance, current holdings, and available assets to trade
+    /// Get the authenticated user's portfolio dashboard with valuation
+    /// Returns cash balance, holdings valuation with latest prices, and tradable assets
     /// </summary>
     [HttpGet("dashboard")]
-    [ProducesResponseType(typeof(DashboardDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(DashboardValuationDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetDashboard(CancellationToken ct)
     {
         try
         {
-            var query = new GetDashboardQuery();
-            var dashboard = await _getDashboardHandler.HandleAsync(query, ct);
+            var query = new GetDashboardValuationQuery();
+            var dashboard = await _getDashboardValuationHandler.HandleAsync(query, ct);
 
             _logger.LogInformation(
-                "Dashboard retrieved: Cash={Cash} ARS, Holdings={HoldingCount}, Assets={AssetCount}",
-                dashboard.CashBalanceAmount,
-                ((IList<HoldingItemDto>)dashboard.Holdings).Count,
-                ((IList<AssetItemDto>)dashboard.AvailableAssets).Count
+                "Dashboard retrieved: Cash={Cash} ARS, Holdings={HoldingCount}, Assets={AssetCount}, Total={Total} ARS",
+                dashboard.CashBalance,
+                dashboard.Holdings.Count,
+                dashboard.TradableAssets.Count,
+                dashboard.TotalPortfolioValue
             );
 
             return Ok(dashboard);
