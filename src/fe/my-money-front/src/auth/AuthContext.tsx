@@ -1,21 +1,22 @@
 import React, { createContext, useContext, useState } from "react";
-//Guarda el token en localStorage para mantener la sesión incluso después de recargar la página
+
 type AuthContextType = {
   token: string | null;
-  setToken: (t: string | null) => void;
+  isAuthenticated: boolean;
+  setToken: (token: string | null) => void;
   logout: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setTokenState] = useState<string | null>(() =>
-    localStorage.getItem("access_token")
-  );
+  const [token, setTokenState] = useState<string | null>(() => {
+    return localStorage.getItem("access_token");
+  });
 
-  function setToken(t: string | null) {
-    setTokenState(t);
-    if (t) localStorage.setItem("access_token", t);
+  function setToken(token: string | null) {
+    setTokenState(token);
+    if (token) localStorage.setItem("access_token", token);
     else localStorage.removeItem("access_token");
   }
 
@@ -23,11 +24,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
   }
 
-  return (
-    <AuthContext.Provider value={{ token, setToken, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const value: AuthContextType = {
+    token,
+    isAuthenticated: !!token,
+    setToken,
+    logout,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
