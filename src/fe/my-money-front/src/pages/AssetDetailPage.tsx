@@ -5,7 +5,7 @@ type AssetDetailDto = {
   assetId: string;
   symbol: string;
   name: string;
-  type: string; // "Stock" | "Bond" o lo que uses
+  type: string; 
   currentPrice: number;
   quantityOwned: number;
   valuation: number;
@@ -18,8 +18,6 @@ export function AssetDetailPage() {
   const [data, setData] = useState<AssetDetailDto | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // ✅ Paso 4: input + cálculo en vivo
   const [tradeQuantity, setTradeQuantity] = useState<number>(0);
 
   useEffect(() => {
@@ -64,17 +62,57 @@ export function AssetDetailPage() {
 
   const isQuantityValid = Number.isFinite(tradeQuantity) && tradeQuantity > 0;
 
-  // 🔜 Paso 5 (todavía NO implementado): buy/sell + redirect
+  
   const handleBuy = async () => {
-    // TODO: POST /api/portfolio/buy { assetId, quantity: tradeQuantity }
-    // on success: navigate("/")
-    alert("TODO: Buy (Paso 5)");
+    if (!isQuantityValid || !data) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("access_token");
+      const res = await fetch("/api/portfolio/buy", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ assetId: data.assetId, quantity: tradeQuantity }),
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`HTTP ${res.status} - ${body || "Error"}`);
+      }
+      navigate("/");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unknown error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSell = async () => {
-    // TODO: POST /api/portfolio/sell { assetId, quantity: tradeQuantity }
-    // on success: navigate("/")
-    alert("TODO: Sell (Paso 5)");
+    if (!isQuantityValid || !data) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("access_token");
+      const res = await fetch("/api/portfolio/sell", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ assetId: data.assetId, quantity: tradeQuantity }),
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`HTTP ${res.status} - ${body || "Error"}`);
+      }
+      navigate("/");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unknown error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!assetId) return <div style={{ padding: 16 }}>Missing assetId</div>;
@@ -117,7 +155,32 @@ export function AssetDetailPage() {
             type="number"
             min={0}
             value={tradeQuantity}
-            onChange={(e) => setTradeQuantity(Number(e.target.value))}
+            onChange={(e) => {
+              const v = e.target.value;
+              setTradeQuantity(v === "" ? 0 : Number(v));
+            }}
             style={{ marginLeft: 8 }}
           />
         </label>
+
+        <div style={{ marginTop: 12 }}>
+          <strong>Total:</strong> ${tradeTotal.toFixed(2)}
+        </div>
+
+        <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+          <button onClick={handleBuy} disabled={!isQuantityValid || loading}>
+            Buy
+          </button>
+
+          <button onClick={handleSell} disabled={!isQuantityValid || loading}>
+            Sell
+          </button>
+
+          <button onClick={() => navigate(-1)} disabled={loading}>
+            Back
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
