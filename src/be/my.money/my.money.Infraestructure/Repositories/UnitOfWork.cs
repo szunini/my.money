@@ -11,6 +11,7 @@ public class UnitOfWork : IUnitOfWork
     private IDbContextTransaction? _transaction;
     private IPortfolioRepository? _portfolios;
     private IAssetRepository? _assets;
+    private IQuoteRepository? _quotes;
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -32,6 +33,15 @@ public class UnitOfWork : IUnitOfWork
         {
             _assets ??= new AssetRepository(_context);
             return _assets;
+        }
+    }
+
+    public IQuoteRepository Quotes
+    {
+        get
+        {
+            _quotes ??= new QuoteRepository(_context);
+            return _quotes;
         }
     }
 

@@ -6,6 +6,7 @@ using my.money.application.Portfolios.Commands.SellAsset;
 using my.money.application.Portfolios.Dtos;
 using my.money.application.Portfolios.Queries.GetDashboard;
 using my.money.application.Portfolios.Queries.GetDashboardValuation;
+using my.money.application.Portfolios.Queries.GetPortfolioValuationAsOf;
 using my.money.application.Portfolios.Queries.TradePreview;
 
 namespace my.money.Controllers;
@@ -17,6 +18,7 @@ public sealed class PortfolioController : ControllerBase
 {
     private readonly GetDashboardHandler _getDashboardHandler;
     private readonly GetDashboardValuationHandler _getDashboardValuationHandler;
+    private readonly GetPortfolioValuationAsOfHandler _getPortfolioValuationAsOfHandler;
     private readonly BuyAssetHandler _buyAssetHandler;
     private readonly SellAssetHandler _sellAssetHandler;
     private readonly TradePreviewHandler _tradePreviewHandler;
@@ -25,6 +27,7 @@ public sealed class PortfolioController : ControllerBase
     public PortfolioController(
         GetDashboardHandler getDashboardHandler,
         GetDashboardValuationHandler getDashboardValuationHandler,
+        GetPortfolioValuationAsOfHandler getPortfolioValuationAsOfHandler,
         BuyAssetHandler buyAssetHandler,
         SellAssetHandler sellAssetHandler,
         TradePreviewHandler tradePreviewHandler,
@@ -32,6 +35,7 @@ public sealed class PortfolioController : ControllerBase
     {
         _getDashboardHandler = getDashboardHandler;
         _getDashboardValuationHandler = getDashboardValuationHandler;
+        _getPortfolioValuationAsOfHandler = getPortfolioValuationAsOfHandler;
         _buyAssetHandler = buyAssetHandler;
         _sellAssetHandler = sellAssetHandler;
         _tradePreviewHandler = tradePreviewHandler;
@@ -71,6 +75,63 @@ public sealed class PortfolioController : ControllerBase
         {
             _logger.LogError(ex, "Error retrieving dashboard");
             return StatusCode(500, new { message = "An error occurred while retrieving the dashboard" });
+        }
+    }
+
+    /// <summary>
+    /// Get the authenticated user's portfolio valuation at a specific historical point in time
+    /// Returns portfolio value, cash balance, and holdings valuation based on historical quotes
+    /// </summary>
+    [HttpGet("valuation/asof")]
+    [ProducesResponseType(typeof(PortfolioValuationDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> GetValuationAsOf([FromQuery] DateTime asOf, CancellationToken ct)
+    {
+        try
+        {
+            // Parse as UTC datetime
+            var asOfUtc = DateTime.SpecifyKind(asOf, DateTimeKind.Utc);
+
+            var query = new GetPortfolioValuationAsOfQuery(asOfUtc);
+            var valuation = await _getPortfolioValuationAsOfHandler.HandleAsync(query, ct);
+
+            _logger.LogInformation(
+                "Portfolio valuation retrieved for asOf={AsOf}: Cash={Cash}, Holdings={HoldingCount}, Total={Total}",
+                asOfUtc,
+                valuation.CashBalanceAmount,
+                valuation.Holdings.Count,
+                valuation.TotalPortfolioValue
+            );
+
+            return Ok(valuation);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized valuation access attempt");
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Portfolio not found"))
+        {
+            _logger.LogWarning(ex, "Portfolio not found for authenticated user");
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("No historical quote found"))
+        {
+            _logger.LogWarning(ex, "Missing historical quotes for valuation at requested date");
+            return Conflict(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid valuation request: {Message}", ex.Message);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving portfolio valuation");
+            return StatusCode(500, new { message = "An error occurred while retrieving the portfolio valuation" });
         }
     }
 

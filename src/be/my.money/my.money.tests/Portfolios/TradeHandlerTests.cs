@@ -247,6 +247,7 @@ file sealed class FakeUnitOfWork : IUnitOfWork
 
     public IPortfolioRepository Portfolios => new FakePortfolioRepository(this);
     public IAssetRepository Assets => new FakeAssetRepository(_asset);
+    public IQuoteRepository Quotes => new FakeQuoteRepository();
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -336,6 +337,17 @@ file sealed class FakeUnitOfWork : IUnitOfWork
         public Task AddAsync(Asset asset, CancellationToken ct)
         {
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeQuoteRepository : IQuoteRepository
+    {
+        public Task<Dictionary<Guid, my.money.domain.Aggregates.Assets.Quote>> GetLatestQuotesAtOrBeforeAsync(
+            List<Guid> assetIds,
+            DateTime asofUtc,
+            CancellationToken ct = default)
+        {
+            return Task.FromResult(new Dictionary<Guid, my.money.domain.Aggregates.Assets.Quote>());
         }
     }
 }
