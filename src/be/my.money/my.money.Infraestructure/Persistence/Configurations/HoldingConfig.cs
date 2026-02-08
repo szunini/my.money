@@ -9,8 +9,15 @@ namespace my.money.Infraestructure.Persistence.Configurations
     {
         public void Configure(EntityTypeBuilder<Holding> builder)
         {
-            // Primary key
+            // Primary key - GUID generated client-side
             builder.HasKey(h => h.Id);
+            builder.Property(h => h.Id).ValueGeneratedNever();
+
+            builder.Property(h => h.PortfolioId)
+                .IsRequired();
+
+            builder.Property(h => h.AssetId)
+                .IsRequired();
 
             // Value object for quantity
             builder.OwnsOne(h => h.Quantity, qtyBuilder =>

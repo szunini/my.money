@@ -17,7 +17,12 @@ namespace my.money.Infraestructure.Persistence.Repositories
 
         public Task<Portfolio?> GetByUserIdAsync(string userId, CancellationToken ct)
             => _db.Portfolios
+                  .SingleOrDefaultAsync(p => p.UserId == userId, ct);
+
+        public Task<Portfolio?> GetByUserIdWithHoldingsAsync(string userId, CancellationToken ct)
+            => _db.Portfolios
                   .Include(p => p.Holdings)
+                  .Include(p => p.Trades)
                   .SingleOrDefaultAsync(p => p.UserId == userId, ct);
 
         public Task AddAsync(Portfolio portfolio, CancellationToken ct)

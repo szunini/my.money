@@ -1,14 +1,16 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using my.money.Infraestructure.Authentication;
 
 namespace my.money.Infraestructure.Persistence.Seeding;
 
 public static class DatabaseSeederExtensions
 {
     /// <summary>
-    /// Seeds the database with initial data (Assets, etc.)
+    /// Seeds the database with initial data (Test User, Assets, Quotes)
     /// Call this in Program.cs after app is built: await app.SeedDatabaseAsync();
     /// </summary>
     public static async Task SeedDatabaseAsync(this WebApplication app)
@@ -19,9 +21,10 @@ public static class DatabaseSeederExtensions
         try
         {
             var db = services.GetRequiredService<ApplicationDbContext>();
+            var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
             var logger = services.GetRequiredService<ILogger<DbSeeder>>();
 
-            var seeder = new DbSeeder(db, logger);
+            var seeder = new DbSeeder(db, userManager, logger);
             await seeder.SeedAsync();
         }
         catch (Exception ex)
@@ -38,3 +41,4 @@ public static class DatabaseSeederExtensions
         }
     }
 }
+

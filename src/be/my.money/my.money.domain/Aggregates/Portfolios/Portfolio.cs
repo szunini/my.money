@@ -1,9 +1,6 @@
 ﻿using my.money.domain.Common.Primitives;
 using my.money.domain.Common.ValueObject;
 using my.money.domain.Enum;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace my.money.domain.Aggregates.Portfolios
 {
@@ -60,8 +57,9 @@ namespace my.money.domain.Aggregates.Portfolios
             var holding = GetOrCreateHolding(assetId, assetCurrency);
             holding.ApplyBuy(qty, unitPrice);
 
-            // trade record
-            var trade = new Trade(Id, assetId, TradeSide.Buy, qty, unitPrice, atUtc ?? DateTime.UtcNow);
+            // trade record - clone Money to avoid owned-type tracking issues
+            var clonedPrice = Money.Of(unitPrice.Amount, unitPrice.Currency);
+            var trade = new Trade(Id, assetId, TradeSide.Buy, qty, clonedPrice, atUtc ?? DateTime.UtcNow);
             _trades.Add(trade);
 
             return trade;
@@ -89,11 +87,22 @@ namespace my.money.domain.Aggregates.Portfolios
             var proceeds = unitPrice.Multiply(qty.Value);
             CashBalance = CashBalance.Add(proceeds);
 
-            // trade record
-            var trade = new Trade(Id, assetId, TradeSide.Sell, qty, unitPrice, atUtc ?? DateTime.UtcNow);
+            // trade record - clone Money to avoid owned-type tracking issues
+            var clonedPrice = Money.Of(unitPrice.Amount, unitPrice.Currency);
+            var trade = new Trade(Id, assetId, TradeSide.Sell, qty, clonedPrice, atUtc ?? DateTime.UtcNow);
             _trades.Add(trade);
 
             return trade;
+        }
+
+        public bool HasHoldingFor(Guid assetId)
+        {
+            return _holdings.Any(h => h.AssetId == assetId);
+        }
+
+        public void EnsureHolding(Guid assetId, string currency)
+        {
+            GetOrCreateHolding(assetId, currency);
         }
 
         private Holding GetOrCreateHolding(Guid assetId, string currency)

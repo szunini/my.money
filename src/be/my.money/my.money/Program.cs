@@ -6,6 +6,9 @@ using my.money.application.Assets.Queries.GetAssetDetail;
 using my.money.application.Authentication;
 using my.money.application.Portfolios.Queries.GetDashboard;
 using my.money.application.Portfolios.Queries.GetDashboardValuation;
+using my.money.application.Portfolios.Queries.TradePreview;
+using my.money.application.Portfolios.Commands.BuyAsset;
+using my.money.application.Portfolios.Commands.SellAsset;
 using my.money.application.Ports.Authentication;
 using my.money.application.Ports.Persistence;
 using my.money.application.Ports.Persistence.Read;
@@ -146,6 +149,11 @@ namespace my.money
             builder.Services.AddScoped<GetDashboardHandler>();
             builder.Services.AddScoped<GetDashboardValuationHandler>();
             builder.Services.AddScoped<GetAssetDetailHandler>();
+            builder.Services.AddScoped<TradePreviewHandler>();
+            
+            // Add Command Handlers
+            builder.Services.AddScoped<BuyAssetHandler>();
+            builder.Services.AddScoped<SellAssetHandler>();
             
             // Add Read Repositories
             builder.Services.AddScoped<IPortfolioDashboardReadRepository, PortfolioDashboardReadRepository>();

@@ -1,18 +1,26 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using my.money.domain.Aggregates.Assets;
 using my.money.domain.Common.ValueObject;
+using my.money.domain.Enum;
+using my.money.Infraestructure.Authentication;
 
 namespace my.money.Infraestructure.Persistence.Seeding;
 
 internal sealed class DbSeeder
 {
     private readonly ApplicationDbContext _db;
+    private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<DbSeeder> _logger;
 
-    public DbSeeder(ApplicationDbContext db, ILogger<DbSeeder> logger)
+    public DbSeeder(
+        ApplicationDbContext db,
+        UserManager<ApplicationUser> userManager,
+        ILogger<DbSeeder> logger)
     {
         _db = db;
+        _userManager = userManager;
         _logger = logger;
     }
 
@@ -27,8 +35,14 @@ internal sealed class DbSeeder
                 _logger.LogInformation("Database migrations applied successfully.");
             }
 
-            // 2. Seed Assets
+            // 2. Seed Test User
+            await SeedTestUserAsync();
+
+            // 3. Seed Assets
             await SeedAssetsAsync(ct);
+
+            // 4. Seed Quotes for Assets
+            await SeedQuotesAsync(ct);
 
             _logger.LogInformation("Database seeding completed successfully.");
         }
@@ -36,6 +50,38 @@ internal sealed class DbSeeder
         {
             _logger.LogError(ex, "An error occurred while seeding the database.");
             throw;
+        }
+    }
+
+    private async Task SeedTestUserAsync()
+    {
+        const string testEmail = "test@mymoney.com";
+        const string testPassword = "Test123!";
+
+        var existingUser = await _userManager.FindByEmailAsync(testEmail);
+        if (existingUser is not null)
+        {
+            _logger.LogDebug("Test user {Email} already exists, skipping.", testEmail);
+            return;
+        }
+
+        var testUser = new ApplicationUser
+        {
+            UserName = testEmail,
+            Email = testEmail,
+            EmailConfirmed = true
+        };
+
+        var result = await _userManager.CreateAsync(testUser, testPassword);
+        if (result.Succeeded)
+        {
+            _logger.LogInformation("Test user created: {Email}", testEmail);
+        }
+        else
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            _logger.LogError("Failed to create test user: {Errors}", errors);
+            throw new InvalidOperationException($"Failed to create test user: {errors}");
         }
     }
 
@@ -86,6 +132,62 @@ internal sealed class DbSeeder
         else
         {
             _logger.LogInformation("No new assets to seed.");
+        }
+    }
+
+    private async Task SeedQuotesAsync(CancellationToken ct)
+    {
+        // Get all assets with their quotes (tracking enabled to detect new quotes)
+        var assets = await _db.Assets
+            .Include(a => a.Quotes)
+            .ToListAsync(ct);
+
+        var random = new Random(42); // Seed for reproducibility
+        var quotesToAdd = new List<Quote>();
+        var now = DateTime.UtcNow;
+
+        foreach (var asset in assets)
+        {
+            if (asset.Quotes.Any())
+            {
+                _logger.LogDebug("Asset {Ticker} already has quotes, skipping.", asset.Ticker.Value);
+                continue;
+            }
+
+            // Generate realistic price based on asset type
+            decimal price = asset.Type switch
+            {
+                AssetType.Stock => random.Next(900, 1501),      // 900-1500 ARS
+                AssetType.Bond => random.Next(95, 111),         // 95-110 ARS
+                _ => random.Next(100, 1001)                     // Default fallback
+            };
+
+            // Use domain method to add quote
+            var quote = asset.AddQuote(
+                Money.Of(price, asset.Currency),
+                now,
+                "seed"
+            );
+
+            quotesToAdd.Add(quote);
+            _logger.LogInformation(
+                "Added quote for {Ticker}: {Price} {Currency}",
+                asset.Ticker.Value,
+                price,
+                asset.Currency
+            );
+        }
+
+        if (quotesToAdd.Count > 0)
+        {
+            // Explicitly add quotes to the context so EF Core tracks them as Added, not Modified
+            await _db.Quotes.AddRangeAsync(quotesToAdd, ct);
+            await _db.SaveChangesAsync(ct);
+            _logger.LogInformation("Seeded {Count} quotes for assets.", quotesToAdd.Count);
+        }
+        else
+        {
+            _logger.LogInformation("No new quotes to seed.");
         }
     }
 }

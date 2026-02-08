@@ -1,6 +1,7 @@
 using my.money.application.Assets.Queries.GetAssetDetail;
 using my.money.application.Ports.Authentication;
 using my.money.application.Ports.Persistence.Read;
+using Xunit;
 
 namespace my.money.tests.Assets;
 
