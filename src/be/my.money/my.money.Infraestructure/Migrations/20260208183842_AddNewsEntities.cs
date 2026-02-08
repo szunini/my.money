@@ -1,11 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace my.money.Infraestructure.Migrations
 {
     /// <inheritdoc />
-    public partial class RemoveUserEntity : Migration
+    public partial class AddNewsEntities : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -79,6 +80,69 @@ namespace my.money.Infraestructure.Migrations
                 table: "Holdings",
                 column: "Id");
 
+            migrationBuilder.CreateTable(
+                name: "NewsItems",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Source = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    Url = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
+                    PublishedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Summary = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_NewsItems", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "NewsMentions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    NewsItemId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    AssetId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Confidence = table.Column<decimal>(type: "decimal(3,2)", precision: 3, scale: 2, nullable: false),
+                    Explanation = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    MatchedText = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    DetectedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_NewsMentions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_NewsMentions_NewsItems_NewsItemId",
+                        column: x => x.NewsItemId,
+                        principalTable: "NewsItems",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_NewsItems_PublishedAtUtc",
+                table: "NewsItems",
+                column: "PublishedAtUtc",
+                descending: new bool[0]);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_NewsItems_Url",
+                table: "NewsItems",
+                column: "Url",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_NewsMentions_AssetId_DetectedAtUtc",
+                table: "NewsMentions",
+                columns: new[] { "AssetId", "DetectedAtUtc" },
+                descending: new[] { false, true });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_NewsMentions_NewsItemId",
+                table: "NewsMentions",
+                column: "NewsItemId");
+
             migrationBuilder.AddForeignKey(
                 name: "FK_Holdings_Portfolios_PortfolioId",
                 table: "Holdings",
@@ -118,6 +182,12 @@ namespace my.money.Infraestructure.Migrations
             migrationBuilder.DropForeignKey(
                 name: "FK_Trades_Portfolios_PortfolioId",
                 table: "Trades");
+
+            migrationBuilder.DropTable(
+                name: "NewsMentions");
+
+            migrationBuilder.DropTable(
+                name: "NewsItems");
 
             migrationBuilder.DropPrimaryKey(
                 name: "PK_Trades",

@@ -6,14 +6,17 @@ using my.money.application.Assets.Queries.GetAssetDetail;
 using my.money.application.Authentication;
 using my.money.application.Portfolios.Queries.GetDashboard;
 using my.money.application.Portfolios.Queries.GetDashboardValuation;
+using my.money.application.Portfolios.Queries.GetPortfolioValuationAsOf;
 using my.money.application.Portfolios.Queries.TradePreview;
 using my.money.application.Portfolios.Commands.BuyAsset;
 using my.money.application.Portfolios.Commands.SellAsset;
 using my.money.application.Ports.Authentication;
+using my.money.application.Ports.ExternalServices;
 using my.money.application.Ports.Persistence;
 using my.money.application.Ports.Persistence.Read;
 using my.money.application.Ports.Queries;
 using my.money.Infraestructure.Authentication;
+using my.money.Infraestructure.ExternalServices;
 using my.money.Infraestructure.Persistence;
 using my.money.Infraestructure.Persistence.Seeding;
 using my.money.Infraestructure.Queries;
@@ -148,12 +151,35 @@ namespace my.money
             // Add Portfolio Handlers            
             builder.Services.AddScoped<GetDashboardHandler>();
             builder.Services.AddScoped<GetDashboardValuationHandler>();
+            builder.Services.AddScoped<GetPortfolioValuationAsOfHandler>();
             builder.Services.AddScoped<GetAssetDetailHandler>();
             builder.Services.AddScoped<TradePreviewHandler>();
             
             // Add Command Handlers
             builder.Services.AddScoped<BuyAssetHandler>();
             builder.Services.AddScoped<SellAssetHandler>();
+
+            // Add News handlers and services
+            builder.Services
+                .AddOptions<my.money.Infraestructure.ExternalServices.OpenAiSettings>()
+                .Bind(builder.Configuration.GetSection(my.money.Infraestructure.ExternalServices.OpenAiSettings.SectionName))
+                .Validate(s => !string.IsNullOrWhiteSpace(s.ApiKey), "OpenAi:ApiKey is missing")
+                .ValidateOnStart();
+
+            builder.Services.AddScoped<my.money.application.News.Commands.RefreshEconomicNews.RefreshEconomicNewsHandler>();
+            builder.Services.AddScoped<my.money.application.News.Queries.GetAssetNews.GetAssetNewsHandler>();
+            builder.Services.AddScoped<my.money.application.Ports.Persistence.INewsItemRepository, my.money.Infraestructure.Repositories.NewsItemRepository>();
+            builder.Services.AddScoped<my.money.application.Ports.Persistence.INewsMentionRepository, my.money.Infraestructure.Repositories.NewsMentionRepository>();
+            
+            builder.Services.AddHttpClient<my.money.application.Ports.ExternalServices.IRssFeedService, my.money.Infraestructure.ExternalServices.RssFeedService>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
+            
+            builder.Services.AddHttpClient<my.money.application.Ports.ExternalServices.IOpenAiService, my.money.Infraestructure.ExternalServices.OpenAiService>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(60);
+            });
             
             // Add Read Repositories
             builder.Services.AddScoped<IPortfolioDashboardReadRepository, PortfolioDashboardReadRepository>();

@@ -273,10 +273,89 @@ namespace my.money.Infraestructure.Migrations
                     b.ToTable("Quotes");
                 });
 
-            modelBuilder.Entity("my.money.domain.Aggregates.Portfolios.Holding", b =>
+            modelBuilder.Entity("my.money.domain.Aggregates.News.NewsItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("PublishedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PublishedAtUtc")
+                        .IsDescending();
+
+                    b.HasIndex("Url")
+                        .IsUnique();
+
+                    b.ToTable("NewsItems");
+                });
+
+            modelBuilder.Entity("my.money.domain.Aggregates.News.NewsMention", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AssetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Confidence")
+                        .HasPrecision(3, 2)
+                        .HasColumnType("decimal(3,2)");
+
+                    b.Property<DateTime>("DetectedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Explanation")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("MatchedText")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("NewsItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NewsItemId");
+
+                    b.HasIndex("AssetId", "DetectedAtUtc")
+                        .IsDescending(false, true);
+
+                    b.ToTable("NewsMentions");
+                });
+
+            modelBuilder.Entity("my.money.domain.Aggregates.Portfolios.Holding", b =>
+                {
+                    b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("AssetId")
@@ -298,7 +377,6 @@ namespace my.money.Infraestructure.Migrations
             modelBuilder.Entity("my.money.domain.Aggregates.Portfolios.Portfolio", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAtUtc")
@@ -316,7 +394,6 @@ namespace my.money.Infraestructure.Migrations
             modelBuilder.Entity("my.money.domain.Aggregates.Portfolios.Trade", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("AssetId")
@@ -447,6 +524,15 @@ namespace my.money.Infraestructure.Migrations
                         });
 
                     b.Navigation("Price")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("my.money.domain.Aggregates.News.NewsMention", b =>
+                {
+                    b.HasOne("my.money.domain.Aggregates.News.NewsItem", null)
+                        .WithMany("Mentions")
+                        .HasForeignKey("NewsItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
@@ -624,6 +710,11 @@ namespace my.money.Infraestructure.Migrations
             modelBuilder.Entity("my.money.domain.Aggregates.Assets.Asset", b =>
                 {
                     b.Navigation("Quotes");
+                });
+
+            modelBuilder.Entity("my.money.domain.Aggregates.News.NewsItem", b =>
+                {
+                    b.Navigation("Mentions");
                 });
 
             modelBuilder.Entity("my.money.domain.Aggregates.Portfolios.Portfolio", b =>
