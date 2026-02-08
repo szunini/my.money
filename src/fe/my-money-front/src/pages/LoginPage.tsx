@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { login } from "../api/authApi";
 import { useAuth } from "../auth/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 
 export function LoginPage() {
   const { setToken, isAuthenticated } = useAuth();
@@ -11,9 +11,9 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  // Si ya está autenticado, lo mando al dashboard
+  // Si ya está autenticado, lo mando al dashboard (sin navegar durante render)
   if (isAuthenticated) {
-    nav("/", { replace: true });
+    return <Navigate to="/" replace />;
   }
 
   async function handleSubmit(e: React.FormEvent) {

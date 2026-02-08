@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { getPortfolioDashboard, type PortfolioDashboardDto } from "../api/investmentsApi";
+import { NewsWidget, type PortfolioAssetRef } from "../components/NewsWidget";
 import { useAuth } from "../auth/AuthContext";
-
 function money(n: number) {
   return n.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -51,6 +52,8 @@ export function DashboardPage() {
         <button onClick={logout}>Logout</button>
       </div>
     );
+
+  const assetsForNews: PortfolioAssetRef[] = data.holdings.map((h) => ({ assetId: h.assetId, ticker: h.ticker }));
 
   return (
     <div style={{ maxWidth: 900, margin: "24px auto" }}>
@@ -129,21 +132,39 @@ export function DashboardPage() {
         </thead>
         <tbody>
           {data.tradableAssets.map((a) => (
-            <tr key={a.assetId}>
+            <ClickableRow key={a.assetId} assetId={a.assetId}>
               <td style={{ borderBottom: "1px solid #eee", padding: 8 }}>{a.ticker}</td>
               <td style={{ borderBottom: "1px solid #eee", padding: 8 }}>{a.name}</td>
               <td style={{ borderBottom: "1px solid #eee", padding: 8 }}>{a.type}</td>
               <td style={{ borderBottom: "1px solid #eee", padding: 8, textAlign: "right" }}>
                 {a.latestPrice == null ? "-" : `$${money(a.latestPrice)}`}
               </td>
-            </tr>
+            </ClickableRow>
           ))}
         </tbody>
       </table>
 
+      <NewsWidget assets={assetsForNews} />
       <div style={{ marginTop: 16 }}>
         <button onClick={load}>Refresh</button>
       </div>
     </div>
+  );
+}
+
+function ClickableRow({ children, assetId }: { children: ReactNode; assetId: string }) {
+  const navigate = useNavigate();
+  return (
+    <tr
+      role="button"
+      tabIndex={0}
+      onClick={() => navigate(`/assets/${assetId}`)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") navigate(`/assets/${assetId}`);
+      }}
+      style={{ cursor: "pointer" }}
+    >
+      {children}
+    </tr>
   );
 }
