@@ -94,31 +94,62 @@ If no assets are relevant, return: {{ ""mentions"": [] }}";
             response.EnsureSuccessStatusCode();
 
             var responseContent = await response.Content.ReadAsStringAsync(ct);
-            var openAiResponse = JsonSerializer.Deserialize<OpenAiChatResponse>(responseContent);
 
-            if (openAiResponse?.Choices == null || openAiResponse.Choices.Count == 0)
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+            };
+            // Step 1: Deserialize OpenAI wrapper
+            var openAiResponse = JsonSerializer.Deserialize<OpenAiChatCompletionResponse>(responseContent, options);
+            if (openAiResponse == null || openAiResponse.Choices == null || openAiResponse.Choices.Count == 0)
             {
                 _logger.LogWarning("No choices in OpenAI response");
                 return new AnalyzeNewsResponse();
             }
 
-            var messageContent = openAiResponse.Choices[0].Message?.Content;
-            if (string.IsNullOrWhiteSpace(messageContent))
+            var message = openAiResponse.Choices[0].Message;
+            if (message == null || string.IsNullOrWhiteSpace(message.Content))
             {
                 _logger.LogWarning("Empty message content from OpenAI");
                 return new AnalyzeNewsResponse();
             }
 
-            // Extract JSON from response (may be wrapped in markdown code blocks)
-            var jsonMatch = ExtractJson(messageContent);
+            // Step 2: Extract and clean JSON from content
+            var jsonMatch = ExtractJson(message.Content);
             if (string.IsNullOrWhiteSpace(jsonMatch))
             {
-                _logger.LogWarning("Could not extract JSON from OpenAI response: {Response}", messageContent);
+                _logger.LogWarning("Could not extract JSON from OpenAI response: {Response}", message.Content);
                 return new AnalyzeNewsResponse();
             }
 
-            var analysisResult = JsonSerializer.Deserialize<AnalyzeNewsResponse>(jsonMatch);
-            return analysisResult ?? new AnalyzeNewsResponse();
+            // Step 3: Deserialize to domain model (AssetMentionsResponse)
+            var assetMentions = JsonSerializer.Deserialize<AssetMentionsResponse>(jsonMatch, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            });
+            if (assetMentions == null)
+            {
+                _logger.LogWarning("Failed to deserialize asset mentions from OpenAI content");
+                return new AnalyzeNewsResponse();
+            }
+
+            // Map AssetMentionsResponse to AnalyzeNewsResponse
+            var result = new AnalyzeNewsResponse();
+            if (assetMentions.Mentions != null)
+            {
+                foreach (var mention in assetMentions.Mentions)
+                {
+                    result.Mentions.Add(new MentionResult
+                    {
+                        Ticker = mention.Ticker,
+                        Confidence = mention.Confidence,
+                        Explanation = mention.Explanation,
+                        MatchedText = mention.MatchedText
+                    });
+                }
+            }
+            return result;
         }
         catch (Exception ex)
         {
@@ -141,18 +172,31 @@ If no assets are relevant, return: {{ ""mentions"": [] }}";
         return text;
     }
 
-    private sealed class OpenAiChatResponse
+    // DTOs for OpenAI Chat Completion
+    private sealed class OpenAiChatCompletionResponse
     {
         public List<Choice> Choices { get; set; } = new();
-
         public sealed class Choice
         {
-            public Message? Message { get; set; }
+            public Message Message { get; set; } = null!;
         }
-
         public sealed class Message
         {
-            public string? Content { get; set; }
+            public string Role { get; set; } = null!;
+            public string Content { get; set; } = null!;
+        }
+    }
+
+    // DTO for your domain response
+    public sealed class AssetMentionsResponse
+    {
+        public List<Mention> Mentions { get; set; } = new();
+        public sealed class Mention
+        {
+            public string Ticker { get; set; } = null!;
+            public decimal Confidence { get; set; }
+            public string Explanation { get; set; } = null!;
+            public string? MatchedText { get; set; }
         }
     }
 }
