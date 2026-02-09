@@ -3,6 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using my.money.application.Assets.Dtos;
 using my.money.application.Assets.Queries.GetAssetDetail;
 using my.money.application.Ports.Queries;
+using my.money.application.Ports.Persistence;
+using my.money.domain.Common.ValueObject;
+using my.money.domain.Aggregates.Assets;
+using System.Globalization;
+using my.money.Infraestructure.Persistence;
+using my.money.Infraestructure.Persistence.Repositories;
+using my.money.application.Assets.Commands.AddQuote;
 
 namespace my.money.Controllers;
 
@@ -13,15 +20,18 @@ public sealed class AssetsController : ControllerBase
     private readonly IAssetQueryService _assetQueryService;
     private readonly GetAssetDetailHandler _getAssetDetailHandler;
     private readonly ILogger<AssetsController> _logger;
+    private readonly AddQuoteHandler _addQuoteHandler;
 
     public AssetsController(
         IAssetQueryService assetQueryService,
         GetAssetDetailHandler getAssetDetailHandler,
-        ILogger<AssetsController> logger)
+        ILogger<AssetsController> logger,
+        AddQuoteHandler addQuoteHandler)
     {
         _assetQueryService = assetQueryService;
         _getAssetDetailHandler = getAssetDetailHandler;
         _logger = logger;
+        _addQuoteHandler = addQuoteHandler;
     }
 
     /// <summary>
@@ -103,4 +113,34 @@ public sealed class AssetsController : ControllerBase
             return Unauthorized(new { message = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Upload a new quote (price) for an asset (manual/admin, no UI)
+    /// </summary>
+    [HttpPost("{assetId:guid}/quotes")]
+    [Authorize] // Optionally restrict to admin
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> AddQuote(Guid assetId, [FromBody] AddQuoteRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var command = new my.money.application.Assets.Commands.AddQuote.AddQuoteCommand(assetId, request.Price, request.AsOfUtc, request.Source);
+            await _addQuoteHandler.Handle(command, ct);
+            _logger.LogInformation("Added quote for asset {AssetId}: {Price} at {AsOfUtc}", assetId, request.Price, request.AsOfUtc);
+            return Ok();
+        }
+        catch (my.money.application.Assets.Commands.AddQuote.NotFoundException)
+        {
+            _logger.LogWarning("Asset not found for quote upload: {AssetId}", assetId);
+            return NotFound(new { message = "Asset not found" });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }
+
+public record AddQuoteRequest(decimal Price, DateTime? AsOfUtc, string? Source);

@@ -35,6 +35,13 @@ public sealed class NewsItemRepository : INewsItemRepository
             .FirstOrDefaultAsync(n => n.Id == id, ct);
     }
 
+    public async Task<List<NewsItem>> GetByUrlsAsync(IEnumerable<string> urls, CancellationToken ct)
+    {
+        return await _dbContext.NewsItems
+            .Where(n => urls.Contains(n.Url))
+            .ToListAsync(ct);
+    }
+
     public void Add(NewsItem newsItem)
     {
         _dbContext.NewsItems.Add(newsItem);

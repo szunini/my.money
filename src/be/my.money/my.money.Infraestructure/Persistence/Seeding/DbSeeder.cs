@@ -38,6 +38,9 @@ internal sealed class DbSeeder
             // 2. Seed Test User
             await SeedTestUserAsync();
 
+            // 2b. Seed Portfolio for test user
+            await SeedTestPortfolioAsync(ct);
+
             // 3. Seed Assets
             await SeedAssetsAsync(ct);
 
@@ -189,5 +192,33 @@ internal sealed class DbSeeder
         {
             _logger.LogInformation("No new quotes to seed.");
         }
+    }
+
+    private async Task SeedTestPortfolioAsync(CancellationToken ct)
+    {
+        const string testEmail = "test@mymoney.com";
+        const decimal initialCash = 1_000_000_000m;
+        var testUser = await _userManager.FindByEmailAsync(testEmail);
+        if (testUser is null)
+        {
+            _logger.LogWarning("Test user {Email} not found, skipping portfolio seed.", testEmail);
+            return;
+        }
+
+        // Check if portfolio already exists for this user
+        bool exists = await _db.Portfolios.AnyAsync(p => p.UserId == testUser.Id.ToString(), ct);
+        if (exists)
+        {
+            _logger.LogDebug("Portfolio for test user {Email} already exists, skipping.", testEmail);
+            return;
+        }
+
+        var portfolio = new my.money.domain.Aggregates.Portfolios.Portfolio(
+            testUser.Id.ToString(),
+            my.money.domain.Common.ValueObject.Money.Of(initialCash, "ARS")
+        );
+        await _db.Portfolios.AddAsync(portfolio, ct);
+        await _db.SaveChangesAsync(ct);
+        _logger.LogInformation("Seeded portfolio for test user {Email} with {Cash} ARS.", testEmail, initialCash);
     }
 }

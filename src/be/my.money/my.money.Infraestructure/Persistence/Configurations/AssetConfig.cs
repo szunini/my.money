@@ -21,11 +21,13 @@ namespace my.money.Infraestructure.Persistence.Configurations
                     .IsRequired();
             });
 
-            // Configure relationship to Quotes
             builder.HasMany(a => a.Quotes)
                 .WithOne()
                 .HasForeignKey(q => q.AssetId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Navigation(a => a.Quotes)
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
         }
     }
 }

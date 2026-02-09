@@ -7,6 +7,9 @@ public interface INewsItemRepository
     Task<NewsItem?> GetByUrlAsync(string url, CancellationToken ct);
     Task<IEnumerable<NewsItem>> GetRecentItemsAsync(int maxDays = 30, CancellationToken ct = default);
     Task<NewsItem?> GetByIdAsync(Guid id, CancellationToken ct);
+
+    Task<List<NewsItem>> GetByUrlsAsync(IEnumerable<string> urls, CancellationToken ct);
+
     void Add(NewsItem newsItem);
     void Update(NewsItem newsItem);
 }

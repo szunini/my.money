@@ -22,6 +22,8 @@ using my.money.Infraestructure.Persistence.Seeding;
 using my.money.Infraestructure.Queries;
 using my.money.Infraestructure.Repositories;
 using System.Text;
+using my.money.Infraestructure.Persistence.Repositories;
+using my.money.Infraestructure.Persistence;
 
 namespace my.money
 {
@@ -158,6 +160,7 @@ namespace my.money
             // Add Command Handlers
             builder.Services.AddScoped<BuyAssetHandler>();
             builder.Services.AddScoped<SellAssetHandler>();
+            builder.Services.AddScoped<my.money.application.Assets.Commands.AddQuote.AddQuoteHandler>();
 
             // Add News handlers and services
             builder.Services
@@ -188,6 +191,8 @@ namespace my.money
             // Add Repository Pattern
             builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+            builder.Services.AddScoped<IAssetRepository, AssetRepository>();
+            builder.Services.AddScoped<ApplicationDbContext>();
 
             // Add Health Checks
             var healthChecksBuilder = builder.Services.AddHealthChecks();

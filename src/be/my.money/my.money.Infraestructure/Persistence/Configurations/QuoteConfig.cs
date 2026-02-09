@@ -10,13 +10,18 @@ namespace my.money.Infraestructure.Persistence.Configurations
         {
             // Configure primary key
             builder.HasKey(q => q.Id);
+            builder.Property(q => q.Id).ValueGeneratedNever();
+
+            builder.Property(q => q.AssetId).IsRequired();
+            builder.Property(q => q.AsOfUtc).IsRequired();
+            builder.Property(q => q.Source).HasMaxLength(64).IsRequired();
 
             // Configure Money as an owned type for Price
             builder.OwnsOne(q => q.Price, priceBuilder =>
             {
                 priceBuilder.Property(p => p.Amount)
                     .HasColumnName("PriceAmount")
-                    .HasPrecision(18, 2)  // 18 total digits, 4 after decimal
+                    .HasPrecision(18, 2)
                     .IsRequired();
 
                 priceBuilder.Property(p => p.Currency)
