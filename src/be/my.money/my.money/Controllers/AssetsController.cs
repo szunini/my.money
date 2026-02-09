@@ -1,15 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using my.money.application.Assets.Commands.AddQuote;
 using my.money.application.Assets.Dtos;
 using my.money.application.Assets.Queries.GetAssetDetail;
 using my.money.application.Ports.Queries;
-using my.money.application.Ports.Persistence;
-using my.money.domain.Common.ValueObject;
-using my.money.domain.Aggregates.Assets;
-using System.Globalization;
-using my.money.Infraestructure.Persistence;
-using my.money.Infraestructure.Persistence.Repositories;
-using my.money.application.Assets.Commands.AddQuote;
 
 namespace my.money.Controllers;
 
@@ -126,12 +120,12 @@ public sealed class AssetsController : ControllerBase
     {
         try
         {
-            var command = new my.money.application.Assets.Commands.AddQuote.AddQuoteCommand(assetId, request.Price, request.AsOfUtc, request.Source);
+            var command = new AddQuoteCommand(assetId, request.Price, request.AsOfUtc, request.Source);
             await _addQuoteHandler.Handle(command, ct);
             _logger.LogInformation("Added quote for asset {AssetId}: {Price} at {AsOfUtc}", assetId, request.Price, request.AsOfUtc);
             return Ok();
         }
-        catch (my.money.application.Assets.Commands.AddQuote.NotFoundException)
+        catch (NotFoundException)
         {
             _logger.LogWarning("Asset not found for quote upload: {AssetId}", assetId);
             return NotFound(new { message = "Asset not found" });

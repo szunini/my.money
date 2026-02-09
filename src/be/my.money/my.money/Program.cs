@@ -4,26 +4,20 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using my.money.application.Assets.Queries.GetAssetDetail;
 using my.money.application.Authentication;
-using my.money.application.Portfolios.Queries.GetDashboard;
-using my.money.application.Portfolios.Queries.GetDashboardValuation;
-using my.money.application.Portfolios.Queries.GetPortfolioValuationAsOf;
-using my.money.application.Portfolios.Queries.TradePreview;
 using my.money.application.Portfolios.Commands.BuyAsset;
 using my.money.application.Portfolios.Commands.SellAsset;
+using my.money.application.Portfolios.Queries.GetDashboardValuation;
 using my.money.application.Ports.Authentication;
-using my.money.application.Ports.ExternalServices;
 using my.money.application.Ports.Persistence;
 using my.money.application.Ports.Persistence.Read;
 using my.money.application.Ports.Queries;
 using my.money.Infraestructure.Authentication;
-using my.money.Infraestructure.ExternalServices;
 using my.money.Infraestructure.Persistence;
+using my.money.Infraestructure.Persistence.Repositories;
 using my.money.Infraestructure.Persistence.Seeding;
 using my.money.Infraestructure.Queries;
 using my.money.Infraestructure.Repositories;
 using System.Text;
-using my.money.Infraestructure.Persistence.Repositories;
-using my.money.Infraestructure.Persistence;
 
 namespace my.money
 {
@@ -151,11 +145,11 @@ namespace my.money
             builder.Services.AddScoped<IAssetQueryService, AssetQueryService>();
             
             // Add Portfolio Handlers            
-            builder.Services.AddScoped<GetDashboardHandler>();
+            //builder.Services.AddScoped<GetDashboardHandler>();
             builder.Services.AddScoped<GetDashboardValuationHandler>();
-            builder.Services.AddScoped<GetPortfolioValuationAsOfHandler>();
+            //builder.Services.AddScoped<GetPortfolioValuationAsOfHandler>();
             builder.Services.AddScoped<GetAssetDetailHandler>();
-            builder.Services.AddScoped<TradePreviewHandler>();
+           
             
             // Add Command Handlers
             builder.Services.AddScoped<BuyAssetHandler>();

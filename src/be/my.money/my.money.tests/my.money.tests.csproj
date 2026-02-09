@@ -17,4 +17,8 @@
     <ProjectReference Include="..\my.money.application\my.money.application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Portfolios\Queries\" />
+  </ItemGroup>
+
 </Project>
