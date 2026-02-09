@@ -1,23 +1,35 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getPortfolioDashboard, type PortfolioDashboardDto } from "../api/investmentsApi";
-import { NewsWidget, type PortfolioAssetRef } from "../components/NewsWidget";
 import { useAuth } from "../auth/AuthContext";
-function money(n: number) {
-  return n.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+import { AllocationPie, type AllocationBucket } from "../components/dashboard/AllocationPie";
+import { KpiCards } from "../components/dashboard/KpiCards";
+import { NewsWidget } from "../components/NewsWidget";
+import { AssetDetailInline } from "../components/dashboard/AssetDetailInline";
+import "./dashboard.css";
+
+const moneyFmt = new Intl.NumberFormat("es-AR", {
+  style: "currency",
+  currency: "ARS",
+});
+
+function formatMoney(n: number) {
+  return moneyFmt.format(n);
 }
 
+
 export function DashboardPage() {
+  const nav = useNavigate();
   const { logout } = useAuth();
 
   const [data, setData] = useState<PortfolioDashboardDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
     setError(null);
-
     try {
       const result = await getPortfolioDashboard();
       setData(result);
@@ -32,139 +44,192 @@ export function DashboardPage() {
     load();
   }, []);
 
-  if (loading) return <div style={{ maxWidth: 900, margin: "24px auto" }}>Cargando...</div>;
+  if (loading) return <div className="dashboard-container">Cargando...</div>;
 
   if (error)
     return (
-      <div style={{ maxWidth: 900, margin: "24px auto" }}>
-        <h2>Dashboard</h2>
-        <p style={{ color: "crimson" }}>{error}</p>
-        <button onClick={load}>Reintentar</button>{" "}
-        <button onClick={logout}>Logout</button>
+      <div className="dashboard-container">
+        <div className="dashboard-header">
+          <h1>Dashboard</h1>
+          <button
+            onClick={() => {
+              logout();
+              nav("/login", { replace: true });
+            }}
+          >
+            Logout
+          </button>
+        </div>
+
+        <div className="error-box">
+          <p style={{ color: "crimson", fontWeight: 600 }}>Ocurrió un error al cargar el dashboard:</p>
+          <pre style={{ color: "crimson", background: "#fff0f0", padding: 8, borderRadius: 4 }}>{error}</pre>
+          <button onClick={load} style={{ marginTop: 8 }}>Reintentar</button>
+        </div>
       </div>
     );
 
   if (!data)
     return (
-      <div style={{ maxWidth: 900, margin: "24px auto" }}>
-        <h2>Dashboard</h2>
+      <div className="dashboard-container">
+        <div className="dashboard-header">
+          <h1>Dashboard</h1>
+          <button
+            onClick={() => {
+              logout();
+              nav("/login", { replace: true });
+            }}
+          >
+            Logout
+          </button>
+        </div>
+
         <p>No hay datos.</p>
-        <button onClick={logout}>Logout</button>
       </div>
     );
 
-  const assetsForNews: PortfolioAssetRef[] = data.holdings.map((h) => ({ assetId: h.assetId, ticker: h.ticker }));
+  const cash = data.cashBalance;
+  const stocks = data.holdings
+    .filter((h) => h.type === "Stock")
+    .reduce((acc, h) => acc + (h.latestPrice == null ? 0 : h.quantity * h.latestPrice), 0);
+  const bonds = data.holdings
+    .filter((h) => h.type === "Bond")
+    .reduce((acc, h) => acc + (h.latestPrice == null ? 0 : h.quantity * h.latestPrice), 0);
+
+  const allocationBuckets: AllocationBucket[] = [
+    { name: "Cash", value: cash },
+    { name: "Stocks", value: stocks },
+    { name: "Bonds", value: bonds },
+  ];
+
+  // Custom HoldingsTable and TradableAssetsTable with row click
+  function handleAssetClick(assetId: string) {
+    setSelectedAssetId(assetId);
+  }
 
   return (
-    <div style={{ maxWidth: 900, margin: "24px auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2>Dashboard</h2>
-        <button onClick={logout}>Logout</button>
+    <div className="dashboard-container">
+      <div className="dashboard-header">
+        <h1>Dashboard</h1>
+        <button
+          onClick={() => {
+            logout();
+            nav("/login", { replace: true });
+          }}
+        >
+          Logout
+        </button>
       </div>
 
-      {/* Summary */}
-      <div style={{ display: "flex", gap: 16, marginTop: 16 }}>
-        <div style={{ border: "1px solid #ddd", padding: 12, flex: 1 }}>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>Cash Balance</div>
-          <div style={{ fontSize: 20 }}>${money(data.cashBalance)}</div>
-        </div>
+      <KpiCards
+        items={[
+          { label: "Cash Balance", value: formatMoney(data.cashBalance) },
+          { label: "Total Holdings Value", value: formatMoney(data.totalHoldingsValue) },
+          { label: "Total Portfolio Value", value: formatMoney(data.totalPortfolioValue) },
+        ]}
+      />
 
-        <div style={{ border: "1px solid #ddd", padding: 12, flex: 1 }}>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>Total Holdings Value</div>
-          <div style={{ fontSize: 20 }}>${money(data.totalHoldingsValue)}</div>
-        </div>
-
-        <div style={{ border: "1px solid #ddd", padding: 12, flex: 1 }}>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>Total Portfolio Value</div>
-          <div style={{ fontSize: 20 }}>${money(data.totalPortfolioValue)}</div>
-        </div>
-      </div>
-
-      {/* Holdings */}
-      <h3 style={{ marginTop: 24 }}>My Holdings</h3>
-      {data.holdings.length === 0 ? (
-        <p>No holdings yet.</p>
-      ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 8 }}>Ticker</th>
-              <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 8 }}>Name</th>
-              <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 8 }}>Type</th>
-              <th style={{ textAlign: "right", borderBottom: "1px solid #ddd", padding: 8 }}>Qty</th>
-              <th style={{ textAlign: "right", borderBottom: "1px solid #ddd", padding: 8 }}>Latest Price</th>
-              <th style={{ textAlign: "right", borderBottom: "1px solid #ddd", padding: 8 }}>Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.holdings.map((h) => {
-              const price = h.latestPrice ?? 0;
-              const value = (h as any).valuation ?? (h.quantity * price); // por si no viene valuation
-              return (
-                <tr key={h.assetId}>
-                  <td style={{ borderBottom: "1px solid #eee", padding: 8 }}>{h.ticker}</td>
-                  <td style={{ borderBottom: "1px solid #eee", padding: 8 }}>{h.name}</td>
-                  <td style={{ borderBottom: "1px solid #eee", padding: 8 }}>{h.type}</td>
-                  <td style={{ borderBottom: "1px solid #eee", padding: 8, textAlign: "right" }}>{h.quantity}</td>
-                  <td style={{ borderBottom: "1px solid #eee", padding: 8, textAlign: "right" }}>
-                    {h.latestPrice == null ? "-" : `$${money(h.latestPrice)}`}
-                  </td>
-                  <td style={{ borderBottom: "1px solid #eee", padding: 8, textAlign: "right" }}>
-                    ${money(value)}
-                  </td>
+      <div className="dashboard-main-cols">
+        <div className="dashboard-main-left">
+          <div className="dash-section">
+            <h2>My Holdings</h2>
+            {data.holdings.length === 0 ? (
+              <p>No holdings yet.</p>
+            ) : (
+              <table className="dash-table">
+                <thead>
+                  <tr>
+                    <th>Ticker</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th className="num">Qty</th>
+                    <th className="num">Latest Price</th>
+                    <th className="num">Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.holdings.map((h) => {
+                    const latestPrice = h.latestPrice;
+                    const value = latestPrice == null ? null : h.quantity * latestPrice;
+                    return (
+                      <tr
+                        key={h.assetId}
+                        style={{ cursor: "pointer" }}
+                        onClick={() => handleAssetClick(h.assetId)}
+                        tabIndex={0}
+                        role="button"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") handleAssetClick(h.assetId);
+                        }}
+                      >
+                        <td>{h.ticker}</td>
+                        <td>{h.name}</td>
+                        <td>{h.type}</td>
+                        <td className="num">{h.quantity}</td>
+                        <td className="num">{latestPrice == null ? "—" : formatMoney(latestPrice)}</td>
+                        <td className="num">{value == null ? "—" : formatMoney(value)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+          <div className="dash-section">
+            <h2>Tradable Assets</h2>
+            <table className="dash-table">
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th className="num">Latest Price</th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
+              </thead>
+              <tbody>
+                {data.tradableAssets.map((a) => (
+                  <tr
+                    key={a.assetId}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => handleAssetClick(a.assetId)}
+                    tabIndex={0}
+                    role="button"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") handleAssetClick(a.assetId);
+                    }}
+                  >
+                    <td>{a.ticker}</td>
+                    <td>{a.name}</td>
+                    <td>{a.type}</td>
+                    <td className="num">{a.latestPrice == null ? "—" : formatMoney(a.latestPrice)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div className="dashboard-main-right">
+          {selectedAssetId ? (
+            <AssetDetailInline
+              assetId={selectedAssetId}
+              onClose={() => setSelectedAssetId(null)}
+              onSuccess={() => {
+                setSelectedAssetId(null);
+                load();
+              }}
+            />
+          ) : (
+            <>
+              <AllocationPie buckets={allocationBuckets} formatMoney={formatMoney} />
+              <NewsWidget assets={data.holdings.map(h => ({ assetId: h.assetId, ticker: h.ticker }))} />
+            </>
+          )}
+        </div>
+      </div>
 
-      {/* Tradable Assets */}
-      <h3 style={{ marginTop: 24 }}>Tradable Assets</h3>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 8 }}>Ticker</th>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 8 }}>Name</th>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 8 }}>Type</th>
-            <th style={{ textAlign: "right", borderBottom: "1px solid #ddd", padding: 8 }}>Latest Price</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.tradableAssets.map((a) => (
-            <ClickableRow key={a.assetId} assetId={a.assetId}>
-              <td style={{ borderBottom: "1px solid #eee", padding: 8 }}>{a.ticker}</td>
-              <td style={{ borderBottom: "1px solid #eee", padding: 8 }}>{a.name}</td>
-              <td style={{ borderBottom: "1px solid #eee", padding: 8 }}>{a.type}</td>
-              <td style={{ borderBottom: "1px solid #eee", padding: 8, textAlign: "right" }}>
-                {a.latestPrice == null ? "-" : `$${money(a.latestPrice)}`}
-              </td>
-            </ClickableRow>
-          ))}
-        </tbody>
-      </table>
-
-      <NewsWidget assets={assetsForNews} />
-      <div style={{ marginTop: 16 }}>
+      <div className="dashboard-footer">
         <button onClick={load}>Refresh</button>
       </div>
     </div>
-  );
-}
-
-function ClickableRow({ children, assetId }: { children: ReactNode; assetId: string }) {
-  const navigate = useNavigate();
-  return (
-    <tr
-      role="button"
-      tabIndex={0}
-      onClick={() => navigate(`/assets/${assetId}`)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") navigate(`/assets/${assetId}`);
-      }}
-      style={{ cursor: "pointer" }}
-    >
-      {children}
-    </tr>
   );
 }

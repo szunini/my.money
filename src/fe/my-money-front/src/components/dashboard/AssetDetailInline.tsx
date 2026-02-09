@@ -1,20 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 
-type AssetDetailDto = {
+export type AssetDetailDto = {
   assetId: string;
   symbol: string;
   name: string;
-  type: string; 
+  type: string;
   currentPrice: number;
   quantityOwned: number;
   valuation: number;
 };
 
-export function AssetDetailPage() {
-  const navigate = useNavigate();
-  const { assetId } = useParams<{ assetId: string }>();
+type Props = {
+  assetId: string;
+  onClose: () => void;
+  onSuccess: () => void;
+};
 
+export function AssetDetailInline({ assetId, onClose, onSuccess }: Props) {
   const [data, setData] = useState<AssetDetailDto | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,13 +65,12 @@ export function AssetDetailPage() {
 
   const isQuantityValid = Number.isFinite(tradeQuantity) && tradeQuantity > 0;
 
-  
   const handleBuy = async () => {
     if (!isQuantityValid || !data) return;
     setLoading(true);
     setError(null);
     try {
-                const token = localStorage.getItem("access_token");
+      const token = localStorage.getItem("access_token");
       const res = await fetch("/api/portfolio/buy", {
         method: "POST",
         headers: {
@@ -89,9 +90,11 @@ export function AssetDetailPage() {
         } catch {}
         throw new Error(msg || "Error");
       }
-      navigate("/");
+      // Solo si fue exitoso:
+      onSuccess();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error");
+      // No llamar onSuccess si hay error
     } finally {
       setLoading(false);
     }
@@ -122,22 +125,22 @@ export function AssetDetailPage() {
         } catch {}
         throw new Error(msg || "Error");
       }
-      navigate("/");
+      // Solo si fue exitoso:
+      onSuccess();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error");
+      // No llamar onSuccess si hay error
     } finally {
       setLoading(false);
     }
   };
 
-  if (!assetId) return <div style={{ padding: 16 }}>Missing assetId</div>;
   if (loading) return <div style={{ padding: 16 }}>Loading...</div>;
   if (!data) return <div style={{ padding: 16 }}>No data</div>;
 
   return (
     <div style={{ padding: 16 }}>
       <h1>Asset detail</h1>
-
       <div style={{ marginTop: 12 }}>
         <div>
           <strong>Name:</strong> {data.name}
@@ -158,11 +161,8 @@ export function AssetDetailPage() {
           <strong>Valuation:</strong> {data.valuation}
         </div>
       </div>
-
-      {/* Trade section */}
       <div style={{ marginTop: 24 }}>
         <h3>Trade</h3>
-
         <label>
           Quantity:
           <input
@@ -176,32 +176,25 @@ export function AssetDetailPage() {
             style={{ marginLeft: 8 }}
           />
         </label>
-
         <div style={{ marginTop: 12 }}>
           <strong>Total:</strong> ${tradeTotal.toFixed(2)}
         </div>
-
         <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
           <button onClick={handleBuy} disabled={!isQuantityValid || loading}>
             Buy
           </button>
-
           <button onClick={handleSell} disabled={!isQuantityValid || loading}>
             Sell
           </button>
-
-          <button onClick={() => navigate(-1)} disabled={loading}>
+          <button onClick={onClose} disabled={loading}>
             Back
           </button>
         </div>
       </div>
-
-      {/* Error message below content */}
       {error && (
         <div style={{ marginTop: 24 }}>
           <div style={{ color: "crimson", fontWeight: 600 }}>Ocurrió un error:</div>
           <pre style={{ color: "crimson", background: "#fff0f0", padding: 8, borderRadius: 4 }}>{error}</pre>
-          <button onClick={() => window.location.reload()} style={{ marginTop: 8 }}>Reintentar</button>
         </div>
       )}
     </div>
